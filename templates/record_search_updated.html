@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MBBS Prof. Result</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h6>Third Professional M.B.B.S. Examination of May 2023</h6>
+    <header>
+        <h3>Search by:</h3>
+    </header>
+
+    <form id="searchForm">
+        <select id="searchCriteria">
+            <option value="Name">Name</option>
+            <option value="College">College</option>
+            <option value="Registration">Registration</option>
+        </select>
+        <label for="searchValue"></label>
+        <br>
+        <input type="text" id="searchValue" name="searchValue">
+        <input type="submit" value="Search">
+    </form>
+
+    <h2>Result:</h2>
+    <div id="result"></div>
+</div>
+
+<script>
+    async function searchRecord(criteria, value) {
+        const response = await fetch(`/search?criteria=${criteria}&value=${value}`);
+        if (response.ok) {
+            return await response.json();
+        } else {
+            return null;
+        }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        var criteria = document.getElementById('searchCriteria').value;
+        var value = document.getElementById('searchValue').value;
+        var records = await searchRecord(criteria, value);
+        var resultDiv = document.getElementById('result');
+
+        if (records && records.length > 0) {
+            let html = '';
+            for (const record of records) {
+                let statusHtml = '';
+
+                // Check for "Referred" pattern
+                if (record.Status.startsWith('Referred')) {
+                    statusHtml = `${record.Status.replace('Referred', '<br><span style="color: #FF033E;">Referred: ').trim()}</span>`;
+                } 
+                else if ((record.Status.startsWith('PassedHons')) && !record.Status.includes('Position:')) {
+                    statusHtml = `${record.Status.replace('PassedHons', 'Passed<br><span style="color: #1F75FE;">Hons').trim()}</span>`;
+
+                } 
+                // Check for "PassedHons" and "Position" pattern
+                else if (record.Status.includes('PassedHons:') && record.Status.includes('Position:')) {
+                    let parts = record.Status.split('Position:');
+                    let honsPart = parts[0].replace('PassedHons:', 'Passed<br>Hons:').trim();
+                    let positionPart = 'Position:' + parts[1].trim();
+                    statusHtml = `${honsPart}<br><span style="color: blue;font-weight: bold;">${positionPart}</span>`;
+                } 
+                // Default case: split by comma
+                else {
+                    let statusComponents = record.Status.split(','); 
+                    for (const component of statusComponents) {
+                        statusHtml += `<span class="status-component">${component.trim()}</span><br>`;
+                    }
+                }
+
+
+                
+
+                html += `
+                    <div class="record">
+                        <p><strong>Registration:</strong> ${record.Registration}</p>
+                        <p><strong>Name:</strong> ${record.Name}</p>
+                        <p><strong>College:</strong> ${record.College}</p>
+                        
+                        <p><strong>Result:</strong> ${statusHtml}</p>
+                    </div>
+                    <hr>
+                `;
+            }
+            resultDiv.innerHTML = html;
+        } else {
+            resultDiv.innerHTML = '<p>No records found.</p>';
+        }
+    });
+</script>
+
+<footer>p3rpl3x3d_m3</footer>
+
+</body>
+</html>
